@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pg Active Queries</title>
+</head>
+<body>
+
+    <div id="container">
+        <div class="table-responsive">
+        <table class="table table-bordered" id="pg_statements_table">
+          <thead>
+            <tr>
+              <th>database</th>
+              <th>backend_pid</th>
+              <th>backend_state</th>
+              <th>backend_waiting</th>
+              <th>query_start</th>
+              <th>query</th>
+              <th>locker_backend_pid</th>
+              <th>locker_query_start</th>
+              <th>locker_query</th>
+              <th>lock_type</th>
+              <th>lock_mode</th>
+              <th>lock_granted</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+        </div>
+    </div>
+
+
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+        $(function () {
+            var ws;
+            var stms;
+
+            if (window.WebSocket === undefined) {
+                $("#container").append("Your browser does not support WebSockets");
+                return;
+            } else {
+                ws = initWS();
+            }
+
+            function hashCode (str){
+                var hash = 0;
+                if (str.length == 0) return hash;
+                for (i = 0; i < str.length; i++) {
+                    char = str.charCodeAt(i);
+                    hash = ((hash<<5)-hash)+char;
+                    hash = hash & hash; // Convert to 32bit integer
+                }
+                return hash;
+            }
+
+            function initWS() {
+                var socket = new WebSocket("ws://localhost:8080/ws"),
+                    container = $("#container")
+                socket.onopen = function() {
+                    container.append("<p>Socket is open</p>");
+                };
+                socket.onmessage = function (e) {
+                    var json = JSON.parse(e.data);
+                    var stm = JSON.parse(json);
+
+                    var rowId = hashCode(stm.backend_pid + stm.query);
+
+                    console.log(stm.event);
+
+                    if(stm.event == 'DELETE') {
+
+                       $('#' + rowId).remove();
+
+                    } else if (stm.event == 'UPDATE' || stm.event == 'INSERT') {
+
+                        var tdHtml = [
+                            '<td>' + stm.database + '</td>',
+                            '<td>' + stm.backend_pid + '</td>',
+                            '<td>' + stm.backend_state + '</td>',
+                            '<td>' + stm.backend_waiting + '</td>',
+                            '<td>' + stm.query_start + '</td>',
+                            '<td>' + stm.query + '</td>',
+                            '<td>' + stm.locker_backend_pid + '</td>',
+                            '<td>' + stm.locker_query_start + '</td>',
+                            '<td>' + stm.locker_query + '</td>',
+                            '<td>' + stm.lock_type + '</td>',
+                            '<td>' + stm.lock_mode + '</td>',
+                            '<td>' + stm.lock_granted + '</td>',
+                        ].join('\n');
+
+                        if($('#' + rowId).length) {
+
+                            $('#' + rowId).html(tdHtml);
+
+                        } else {
+
+                            var trHtml = [
+                                '<tr id="' + rowId + '">',
+                                tdHtml,
+                                '</tr>'
+                            ].join('\n');
+
+                            $('#pg_statements_table tr:last').after(trHtml);
+                        }
+
+                    } else {
+                        console.log('Unrecognised event: ', stm.event);
+                    }
+
+                }
+                socket.onclose = function () {
+                    container.append("<p>Socket closed</p>");
+                }
+
+                return socket;
+            }
+
+        });
+    </script>
+</body>
+</html>
