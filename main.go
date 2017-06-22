@@ -131,7 +131,7 @@ func main() {
 
                     rows, err := db.Query(`
                     SELECT * 
-                    FROM pg_active_queries PAQ;
+                    FROM pg_statements PS;
                     `)
 
                     if err != nil {
