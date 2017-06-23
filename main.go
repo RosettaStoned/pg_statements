@@ -90,6 +90,7 @@ func wsHandler (w http.ResponseWriter, r *http.Request) {
                 delete(lm, lChan)
             }
 
+            log.Println(string(stmJson))
         }
     }
 }
@@ -179,7 +180,6 @@ func main() {
 
                     }
 
-                    log.Println(len(stms))
 
                     for key, stm := range stms {
 
